@@ -6,7 +6,6 @@ library(data.table)
 library(MASS)
 library(tibble)
 library(tidyverse)
-library(MVR)
 
 setwd("D:/vaccination")
 
