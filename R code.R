@@ -9,7 +9,7 @@ library(tidyverse)
 
 setwd("D:/vaccination")
 
-df <- read.xlsx("severity and hospitalization dataset.xlsx")
+df <- read.xlsx("hospitalization and severity dataset.xlsx")
 
 ###########################VE - vaccination population ######################
 
@@ -54,22 +54,21 @@ table(et1.1$id)
 temp <- NULL
 for( i in 1:max(et1.1$g)){
   tp <- subset(et1.1, g == i)
-  tp$tot.infect <- sum(tp$infection, na.rm=T)
-  # tp$tot.mo.sev <- sum(tp$moderate.to.severe, na.rm=T)
-  tp$vac.per <- round(tp$vac.no/tp$pop*100,3)
-  tp$hosp.per <- round(tp$hospitalization/tp$tot.infect*100,3)
-  tp$mo.sev.per <- round(tp$moderate.to.severe/tp$tot.infect*100,3)
+  tp$vac.no <- ifelse(tp$Dose == 0, tp$pop - sum(tp$vac.no, na.rm=T), tp$vac.no)
+  tp$vac.per <- round(tp$vac.no/tp$pop,3)
+  tp$hosp.per <- round(tp$hospitalization/tp$infection,3)
+  tp$mo.sev.per <- round(tp$moderate.to.severe/tp$infection,3)
   tp -> temp[[i]]
 }
 
 et1.2 <- do.call("rbind", temp)
 et1.2 <- dplyr::select(et1.2, -c("id", "g"))
 
+write.xlsx(et1.2, "table 1.xlsx", overwrite=T)
+
 ##############Table 2 Vaccine effectiveness
 ######### Hospitalization
 df$log.pop <- log(df$pop.at.risk)
-#df <- subset(df, Date >=44618 & Date <= 44670)
-df <- subset(df, Date >=44562 & Date <= 44670)
 df$vcdose <- with(df, ifelse(Vaccine_type == "BioNTech" & Dose ==1, 1, ifelse(
   Vaccine_type == "Sinovac" & Dose ==1, 2, ifelse(
     Vaccine_type == "BioNTech" & Dose ==2, 3, ifelse( 
@@ -135,8 +134,6 @@ colnames(rr.hosp) <- c("vcdose", "rr", "Age_gp")
 
 ##### Moderate-to-severe disease #####
 df$log.pop <- log(df$pop.at.risk)
-#df <- subset(df, Date >=44618 & Date <= 44670)
-df <- subset(df, Date >=44562 & Date <= 44670)
 df$vcdose <- with(df, ifelse(Vaccine_type == "BioNTech" & Dose ==1, 1, ifelse(
   Vaccine_type == "Sinovac" & Dose ==1, 2, ifelse(
     Vaccine_type == "BioNTech" & Dose ==2, 3, ifelse( 
@@ -174,7 +171,6 @@ t.g.2 <- dplyr::select(t.g, c("coeff", "rr"))
 
 rr.sev <- t.g.2
 colnames(rr.sev) <- c("vcdose", "rr")
-
 
 #daily expected number
 ### hospitalization
