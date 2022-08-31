@@ -58,13 +58,12 @@ for( i in 1:max(et1.1$g)){
   tp$vac.per <- round(tp$vac.no/tp$pop,3)
   tp$hosp.per <- round(tp$hospitalization/tp$infection,3)
   tp$mo.sev.per <- round(tp$moderate.to.severe/tp$infection,3)
+  tp$infect.per <- round(tp$infection/tp$vac.no,3)
   tp -> temp[[i]]
 }
 
 et1.2 <- do.call("rbind", temp)
 et1.2 <- dplyr::select(et1.2, -c("id", "g"))
-
-write.xlsx(et1.2, "table 1.xlsx", overwrite=T)
 
 ##############Table 2 Vaccine effectiveness
 ######### Hospitalization
