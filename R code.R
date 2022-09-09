@@ -456,5 +456,5 @@ for(g in col){
   }
 }
 
-df6 <- dplyr::select(df5, c("Date", "total.hosp", "av.case.hosp", "av.case.hosp.low", "av.case.hosp.up", "total.sev", "av.case.sev", "av.case.sev.low", "av.case.sev.up"))
+df6 <- dplyr::select(df5, c("Date",  paste0("cum.", c("total.hosp","av.case.hosp", "av.case.hosp.low", "av.case.hosp.up", "total.sev", "av.case.sev", "av.case.sev.low", "av.case.sev.up"))))
 
