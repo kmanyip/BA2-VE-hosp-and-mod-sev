@@ -9,9 +9,9 @@ library(tidyverse)
 library(metafor)
 library(fmsb)
 
-setwd("D:/vaccination")
+setwd("D:/vaccination/hospital/data results/14 days lag")
 
-df <- read.xlsx("hospitalization and severity_21 Jan to 19 Apr.xlsx")
+df <- read.xlsx("hospitalization and severity_v2.xlsx")
 
 ###########################VE - vaccination population ######################
 
@@ -158,7 +158,7 @@ df$Vaccine_type <- relevel(as.factor(df$Vaccine_type), ref="None")
 #Age group: all
 table(df$vcdose, df$mo.sev)
 df.g <- subset(df, log.pop != -Inf & (vcdose ==0 | vcdose ==1 |vcdose ==2| vcdose ==3 |vcdose==4))
-m1 <- glm.nb(mo.sev ~ vcdose+ day.count +offset(log.pop), link = log, data=df.g )
+m1 <- glm.nb(mo.sev ~ vcdose+ week.count +offset(log.pop), link = log, data=df.g )
 t.g <- as.data.frame(summary(m1)$coefficients)
 t.g <- tibble::rownames_to_column(t.g, "coeff")
 t.g$rr.se <- exp(t.g$`Std. Error`)
@@ -237,6 +237,7 @@ ep.case5$ep.case.97.5 <- with(ep.case5,vcdose0tot.hosp.adm+  vcdose2tot.hosp.adm
 
 ep.case5$ep.case.2.5 <- with(ep.case5,vcdose0tot.hosp.adm+  vcdose2tot.hosp.adm + (vcdose1tot.hosp.adm +vcdose3tot.hosp.adm +vcdose4tot.hosp.adm)/ci.ub)
 
+
 ### Moderate-to-severe 
 df %>% dplyr::group_by(Date, vcdose, Age_gp) %>% summarize(tot.mo.sev= sum(mo.sev, na.rm=T)) -> ep.case
 ep.case$vcdose <- paste0("vcdose", ep.case$vcdose)
@@ -261,7 +262,6 @@ ep.case5$ep.case.97.5 <- with(ep.case5,vcdose0tot.mo.sev + vcdose2tot.mo.sev + (
 
 ep.case5$ep.case.2.5 <- with(ep.case5,vcdose0tot.mo.sev+ vcdose2tot.mo.sev + (vcdose1tot.mo.sev + vcdose3tot.mo.sev +vcdose4tot.mo.sev)/ci.ub)
 
-write.xlsx(ep.case5, "check.xlsx", overwrite = T)
 
 ######supplementary 
 ###Table S2
@@ -394,19 +394,25 @@ df4$id <- paste0(df4$var, df4$vcdose)
 df4 %>% dplyr::select(-c("var", "vcdose")) %>% spread(id, value) -> df5
 df5 <- ungroup(df5)
 
-df5$hosp0.rate <- df5$hosp.adm0/df5$pop.at.risk0
-df5$sev0.rate <- as.numeric(df5$mo.sev0/df5$pop.at.risk0)
+df5$hosp.adm.unvac <- df5$hosp.adm0 + df5$hosp.adm1 + df5$hosp.adm2
+df5$mo.sev.unvac <- as.numeric(df5$mo.sev0 + df5$mo.sev1 + df5$mo.sev2)
+df5$pop.at.risk.unvac <- df5$pop.at.risk0 + df5$pop.at.risk1 + df5$pop.at.risk2
+
+df5$hosp.unvac.rate <- df5$hosp.adm.unvac/df5$pop.at.risk.unvac
+df5$sev.unvac.rate <- df5$mo.sev.unvac /df5$pop.at.risk.unvac
 
 col <- c("pop.at.risk", "hosp.adm", "mo.sev")
 
 for(i in 1:3){
   j <- col[[i]]
   k <- paste0(j,".vac")
+  b1 <- paste0(j,"1")
   b2 <- paste0(j,"3")
   b3 <- paste0(j,"5")
+  s1 <- paste0(j,"2")
   s2 <- paste0(j,"4")
   s3 <- paste0(j,"6")
-  df5[,k] <- df5[,b2] + df5[,b3] + df5[,s2] + df5[,s3]
+  df5[,k] <-  df5[,b2] + df5[,b3] + df5[,s2] + df5[,s3] 
 }
 
 list <- NULL
@@ -418,10 +424,10 @@ hosp.low <- paste0(hosp,".low")
 sev.up <- paste0(sev,".up")
 sev.low <- paste0(sev,".low")
 for(w in 1:NROW(df5)){
-  df5[w, hosp.up] <- ratedifference(df5$hosp.adm0[[w]], as.numeric(df5[w,hosp]), df5$pop.at.risk0[[w]], as.numeric(df5[w,p]))$conf.in[[2]]
-  df5[w, hosp.low] <- ratedifference(df5$hosp.adm0[[w]], as.numeric(df5[w,hosp]), df5$pop.at.risk0[[w]], as.numeric(df5[w,p]))$conf.in[[1]]
-  df5[w, sev.up] <- ratedifference(df5$mo.sev0[[w]], as.numeric(df5[w,sev]), df5$pop.at.risk0[[w]], as.numeric(df5[w,p]))$conf.in[[2]]
-  df5[w, sev.low] <- ratedifference(df5$mo.sev0[[w]], as.numeric(df5[w,sev]), df5$pop.at.risk0[[w]],as.numeric(df5[w,p]))$conf.in[[1]]
+  df5[w, hosp.up] <- ratedifference(df5$hosp.adm.unvac[[w]], as.numeric(df5[w,hosp]), df5$pop.at.risk.unvac[[w]], as.numeric(df5[w,p]))$conf.in[[2]]
+  df5[w, hosp.low] <- ratedifference(df5$hosp.adm.unvac[[w]], as.numeric(df5[w,hosp]), df5$pop.at.risk.unvac[[w]], as.numeric(df5[w,p]))$conf.in[[1]]
+  df5[w, sev.up] <- ratedifference(df5$mo.sev.unvac[[w]], as.numeric(df5[w,sev]), df5$pop.at.risk.unvac[[w]], as.numeric(df5[w,p]))$conf.in[[2]]
+  df5[w, sev.low] <- ratedifference(df5$mo.sev.unvac[[w]], as.numeric(df5[w,sev]), df5$pop.at.risk.unvac[[w]],as.numeric(df5[w,p]))$conf.in[[1]]
 }
 for(j in c(hosp, sev)){
   k <- paste0(j,".rate")
@@ -429,13 +435,13 @@ for(j in c(hosp, sev)){
   
 }
 
-df5$total.hosp <- df5$hosp.adm0 + df5$hosp.adm.vac
+df5$total.hosp <- df5$hosp.adm.unvac + df5$hosp.adm.vac
 
-df5$total.sev <- df5$mo.sev0 + df5$mo.sev.vac
+df5$total.sev <- df5$mo.sev.unvac + df5$mo.sev.vac
 
-df5$av.case.hosp<- df5$pop.at.risk.vac*(df5$hosp0.rate - df5$hosp.adm.vac.rate)
+df5$av.case.hosp<- df5$pop.at.risk.vac*(df5$hosp.unvac.rate - df5$hosp.adm.vac.rate)
 
-df5$av.case.sev<- df5$pop.at.risk.vac*(df5$sev0.rate - df5$mo.sev.vac.rate)
+df5$av.case.sev<- df5$pop.at.risk.vac*(df5$sev.unvac.rate - df5$mo.sev.vac.rate)
 
 df5$av.case.hosp.up<- df5$pop.at.risk.vac*df5$hosp.adm.vac.up
 
